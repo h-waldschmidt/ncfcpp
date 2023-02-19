@@ -1,4 +1,5 @@
 # ncfcpp
+
 Neural Collaborative Filtering with PyTorch in C++
 
 Algorithms used in this repository are based on the following paper:
@@ -8,4 +9,9 @@ Xiangnan He, Lizi Liao, Hanwang Zhang, Liqiang Nie, Xia Hu and Tat-Seng Chua (20
 You can find an implemenation by the authors of the paper in Python [here](https://github.com/hexiangnan/neural_collaborative_filtering)
 
 ## Why in C++?
+
 It is probably better to use Python for ML/DL related tasks, because of its easy to use APIs, but integration into already existing C++ code-bases can sometimes be tricky.
+
+## Installation of PyTorch for C++
+
+To keep the size of this repository in check, it doesn't contain the PyTorch Binary. But it can be downloaded on the [PyTorch Website](https://pytorch.org/get-started/locally/). Was tested with PyTorch version 1.13.1 and CUDA 11.6.
