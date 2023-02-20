@@ -2,8 +2,6 @@
 
 #include <torch/torch.h>
 
-#include <filesystem>
-#include <iostream>
 #include <vector>
 
 // defines a rating given by the MovieLens dataset
@@ -40,3 +38,13 @@ struct MovieLens : torch::data::datasets::Dataset<MovieLens> {
     torch::Tensor m_ratings;
     Mode m_mode;
 };
+
+/**
+ * @brief
+ *
+ * @param data_path path to MovieLens file
+ * @param test_size size of train/test split (e.g. 0.2 corresponds to 80% train
+ * and 20% test data)
+ * @return train and test data sets
+ **/
+std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_path, double test_size);
