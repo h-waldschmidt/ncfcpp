@@ -11,7 +11,6 @@ MovieLens::MovieLens(std::vector<MovieLensRating>& data, Mode mode) : m_mode(mod
     for (int i = 0; i < data.size(); i++) {
         m_user_item_pairs[i] = torch::tensor({data[i].itemID, data[i].userID}, torch::kInt32);
         m_ratings[i] = torch::tensor(data[i].rating, torch::kFloat);
-        std::cout << "Rating" << m_user_item_pairs[i] << " " << m_ratings[i] << std::endl;
     }
 }
 

@@ -11,7 +11,7 @@ struct MovieLensRating {
     double rating;
 };
 
-struct MovieLens : torch::data::datasets::Dataset<MovieLens> {
+class MovieLens : torch::data::datasets::Dataset<MovieLens> {
    public:
     // The mode in which the dataset is loaded
     enum Mode { TRAIN, TEST };
