@@ -16,7 +16,8 @@ class MovieLens : torch::data::datasets::Dataset<MovieLens> {
     // The mode in which the dataset is loaded
     enum Mode { TRAIN, TEST };
 
-    explicit MovieLens(std::vector<MovieLensRating>& data, Mode mode = Mode::TRAIN);
+    explicit MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items,
+                       Mode mode = Mode::TRAIN);
 
     // Returns the `Example` at the given `index`.
     torch::data::Example<> get(size_t index) override;
@@ -37,6 +38,8 @@ class MovieLens : torch::data::datasets::Dataset<MovieLens> {
     torch::Tensor m_user_item_pairs;
     torch::Tensor m_ratings;
     Mode m_mode;
+    int64_t m_num_users;
+    int64_t m_num_items;
 };
 
 /**

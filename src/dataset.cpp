@@ -3,8 +3,10 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <unordered_set>
 
-MovieLens::MovieLens(std::vector<MovieLensRating>& data, Mode mode) : m_mode(mode) {
+MovieLens::MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items, Mode mode)
+    : m_mode(mode), m_num_users(num_users), m_num_items(num_items) {
     m_user_item_pairs = torch::empty({long(data.size()), 2}, torch::kInt32);
     m_ratings = torch::empty(data.size(), torch::kFloat);
 
@@ -45,6 +47,8 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
     std::ifstream infile(data_path);
     std::string userId_string, itemId_string, rating_string;
     std::string line;
+    std::unordered_set<int> users;
+    std::unordered_set<int> items;
 
     while (getline(infile, line)) {
         std::stringstream ss(line);
@@ -58,6 +62,8 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
 
         MovieLensRating current_rating = {stoi(userId_string), stoi(itemId_string), atof(rating_string.c_str())};
         ratings.push_back(current_rating);
+        users.emplace(current_rating.userID);
+        items.emplace(current_rating.itemID);
     }
 
     // split into two vectors according to test_size
@@ -65,7 +71,7 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
     splitRatings(ratings, test_ratings, test_size);
 
     // create Torch Datasets and return them
-    MovieLens train_data(ratings);
-    MovieLens test_data(test_ratings, MovieLens::Mode::TEST);
+    MovieLens train_data(ratings, users.size(), items.size());
+    MovieLens test_data(test_ratings, users.size(), items.size(), MovieLens::Mode::TEST);
     return std::make_pair(train_data, test_data);
 }
