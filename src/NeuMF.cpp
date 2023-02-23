@@ -4,8 +4,8 @@ NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> 
                      int64_t output_dims)
     : m_mf_embedding_user(num_users, mf_dims),
       m_mf_embedding_item(num_items, mf_dims),
-      m_mlp_embedding_user(num_users, mlp_layers[0]),
-      m_mlp_embedding_item(num_items, mlp_layers[0]),
+      m_mlp_embedding_user(num_users, mlp_layers[0] / 2),
+      m_mlp_embedding_item(num_items, mlp_layers[0] / 2),
       m_prediction(mf_dims + mlp_layers.back(), output_dims) {
     register_module("mf_embedding_user", m_mf_embedding_user);
     register_module("mf_embedding_item", m_mf_embedding_item);
@@ -24,12 +24,12 @@ NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> 
     register_module("prediction", m_prediction);
 }
 
-torch::Tensor NeuMFImpl::forward(torch::Tensor input) {
+torch::Tensor NeuMFImpl::forward(torch::Tensor user_input, torch::Tensor item_input) {
     // Embedding layer
-    torch::Tensor mf_embedding_user = m_mf_embedding_user->forward(input[1]);
-    torch::Tensor mf_embedding_item = m_mf_embedding_item->forward(input[0]);
-    torch::Tensor mlp_embedding_user = m_mlp_embedding_user->forward(input[1]);
-    torch::Tensor mlp_embedding_item = m_mlp_embedding_item->forward(input[0]);
+    torch::Tensor mf_embedding_user = m_mf_embedding_user->forward(user_input);
+    torch::Tensor mf_embedding_item = m_mf_embedding_item->forward(item_input);
+    torch::Tensor mlp_embedding_user = m_mlp_embedding_user->forward(user_input);
+    torch::Tensor mlp_embedding_item = m_mlp_embedding_item->forward(item_input);
     mf_embedding_user.flatten();
     mf_embedding_item.flatten();
     mlp_embedding_user.flatten();
@@ -39,14 +39,14 @@ torch::Tensor NeuMFImpl::forward(torch::Tensor input) {
     torch::Tensor mf_vector = torch::mul(mf_embedding_user, mf_embedding_item);
 
     // MLP layer
-    torch::Tensor mlp_vector = torch::cat({mlp_embedding_user, mlp_embedding_item});
+    torch::Tensor mlp_vector = torch::cat({mlp_embedding_user, mlp_embedding_item}, 1);
     mlp_vector = m_mlp_layers->forward(mlp_vector);
 
     // concatenate MF and MLP layer
-    torch::Tensor output = torch::cat({mf_vector, mlp_vector});
+    torch::Tensor output = torch::cat({mf_vector, mlp_vector}, 1);
 
     // final prediction
     output = m_prediction->forward(output);
-    output = torch::sigmoid(output);
+    // output = torch::sigmoid(output);
     return output;
 }
