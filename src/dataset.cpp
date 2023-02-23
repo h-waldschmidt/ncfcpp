@@ -9,12 +9,13 @@ MovieLens::MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int6
                      Mode mode)
     : m_mode(mode), m_num_users(num_users), m_num_items(num_items) {
     m_user_item_pairs = torch::empty({long(data.size()), 2}, torch::kInt32);
-    m_ratings = torch::empty({long(data.size()), 5}, torch::kInt8);
+    m_ratings = torch::empty({long(data.size()), 1}, torch::kFloat);
 
     for (int i = 0; i < data.size(); i++) {
-        m_user_item_pairs[i] = torch::tensor({data[i].itemID, data[i].userID}, torch::kInt32);
-        m_ratings[i] = torch::zeros(5);
-        m_ratings[i][data[i].rating - 1] = 1;
+        m_user_item_pairs[i] = torch::tensor({data[i].userID, data[i].itemID}, torch::kInt32);
+        m_ratings[i] = float(data[i].rating);
+        m_ratings[i] = torch::zeros(1);
+        m_ratings[i][0] = float(data[i].rating);
     }
 }
 
@@ -27,6 +28,10 @@ bool MovieLens::is_train() const noexcept { return m_mode == Mode::TRAIN; }
 const torch::Tensor& MovieLens::getUserItemPairs() const { return m_user_item_pairs; }
 
 const torch::Tensor& MovieLens::getRatings() const { return m_ratings; }
+
+const int64_t MovieLens::getNumOfUser() const { return m_num_users; }
+
+const int64_t MovieLens::getNumOfItems() const { return m_num_items; }
 
 void splitRatings(std::vector<MovieLensRating>& train_ratings, std::vector<MovieLensRating>& test_ratings,
                   double test_size) {
@@ -52,7 +57,8 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
     std::string line;
     std::unordered_set<int> users;
     std::unordered_set<int> items;
-
+    int max_user = -1;
+    int max_item = -1;
     while (getline(infile, line)) {
         std::stringstream ss(line);
 
@@ -67,6 +73,12 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
         ratings.push_back(current_rating);
         users.emplace(current_rating.userID);
         items.emplace(current_rating.itemID);
+        if (current_rating.userID > max_user) {
+            max_user = current_rating.userID;
+        }
+        if (current_rating.itemID > max_item) {
+            max_item = current_rating.itemID;
+        }
     }
 
     // split into two vectors according to test_size
@@ -74,7 +86,7 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
     splitRatings(ratings, test_ratings, test_size);
 
     // create Torch Datasets and return them
-    MovieLens train_data(ratings, users.size(), items.size(), ouput_dims);
-    MovieLens test_data(test_ratings, users.size(), items.size(), ouput_dims, MovieLens::Mode::TEST);
+    MovieLens train_data(ratings, max_user, max_item, ouput_dims);
+    MovieLens test_data(test_ratings, max_user, max_item, ouput_dims, MovieLens::Mode::TEST);
     return std::make_pair(train_data, test_data);
 }

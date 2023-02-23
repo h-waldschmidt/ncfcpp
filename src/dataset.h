@@ -6,12 +6,12 @@
 
 // defines a rating given by the MovieLens dataset
 struct MovieLensRating {
-    int itemID;
     int userID;
+    int itemID;
     double rating;
 };
 
-class MovieLens : torch::data::datasets::Dataset<MovieLens> {
+class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
    public:
     // The mode in which the dataset is loaded
     enum Mode { TRAIN, TEST };
@@ -33,6 +33,12 @@ class MovieLens : torch::data::datasets::Dataset<MovieLens> {
 
     // Returns all ratings stacked into a single tensor.
     const torch::Tensor& getRatings() const;
+
+    // Returns number of users
+    const int64_t getNumOfUser() const;
+
+    // Returns number of items
+    const int64_t getNumOfItems() const;
 
    private:
     torch::Tensor m_user_item_pairs;
