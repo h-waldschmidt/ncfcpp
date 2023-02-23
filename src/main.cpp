@@ -11,14 +11,15 @@ int main() {
     auto train_data = data.first.map(torch::data::transforms::Stack<>());
     auto test_data = data.second.map(torch::data::transforms::Stack<>());
     auto train_loader =
-        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 64);
-    auto test_loader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(test_data), 1);
+        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 256);
+    auto test_loader =
+        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(test_data), 256);
 
     // hyper params
     const std::vector<int64_t> mlp_layers = {64, 32, 16, 8};
     const int64_t mf_dims = 10;
     const int64_t output_dims = 1;
-    const size_t num_epochs = 10;
+    const size_t num_epochs = 20;
     const double learning_rate = 0.02;
 
     // model

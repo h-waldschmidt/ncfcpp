@@ -15,7 +15,7 @@ NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> 
     register_module("mlp_layers", m_mlp_layers);
     for (int i = 1; i < mlp_layers.size(); i++) {
         auto cur_layer = torch::nn::Linear(mlp_layers[i - 1], mlp_layers[i]);
-        auto activation_layer = torch::nn::Sigmoid();
+        auto activation_layer = torch::nn::ReLU();
 
         m_mlp_layers->push_back(cur_layer);
         m_mlp_layers->push_back(activation_layer);
