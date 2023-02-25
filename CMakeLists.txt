@@ -4,7 +4,12 @@ set(CMAKE_BUILD_TYPE Release)
 
 project(ncfcpp LANGUAGES C CXX)
 
-set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/libtorch)
+if(UNIX AND NOT APPLE)
+    set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/libtorch-linux)
+else()
+    set(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/libtorch-mac)
+endif()
+
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 

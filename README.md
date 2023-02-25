@@ -15,3 +15,4 @@ It is probably better to use Python for ML/DL related tasks, because of its easy
 ## Installation of PyTorch for C++
 
 To keep the size of this repository in check, it doesn't contain the PyTorch Binary. But it can be downloaded on the [PyTorch Website](https://pytorch.org/get-started/locally/). Was tested with PyTorch version 1.13.1 and without CUDA. If you want to use CUDA, you also need to install CUDA with several libraries like cuDNN.
+If you want to use it on an ARM based Mac you can find build instructions in [this Stackoverflow post](https://stackoverflow.com/questions/65593177/how-to-build-libtorch-on-mac-arm).
