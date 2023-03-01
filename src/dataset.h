@@ -12,7 +12,7 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
     enum Mode { TRAIN, TEST };
 
     explicit MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items,
-                       ProblemMode problem_mode, int64_t ouput_dims = 5, Mode mode = Mode::TRAIN);
+                       ProblemMode problem_mode, Mode mode = Mode::TRAIN);
 
     // Returns the `Example` at the given `index`.
     torch::data::Example<> get(size_t index) override;
@@ -56,4 +56,4 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
  * @return train and test data sets
  **/
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_path, double test_size,
-                                                      int64_t output_dims = 5);
+                                                      ProblemMode problem_mode);
