@@ -7,8 +7,11 @@
 #include "dataset.h"
 
 int main() {
+    ProblemMode problem_mode = ProblemMode::REGRESSION;
+
     // data
-    auto data = readAndSplitMovieLens("/Users/helmut/Documents/Projects/ncfcpp/data/ml-1m/ratings.dat", 0.2);
+    auto data =
+        readAndSplitMovieLens("/Users/helmut/Documents/Projects/ncfcpp/data/ml-1m/ratings.dat", 0.2, problem_mode);
     auto train_data = data.first.map(torch::data::transforms::Stack<>());
     auto test_data = data.second.map(torch::data::transforms::Stack<>());
     auto train_loader =
@@ -17,13 +20,12 @@ int main() {
 
     // hyper params
     const std::vector<int64_t> mlp_layers = {256, 128, 64, 32, 16, 8};
-    const int64_t mf_dims = 30;
-    const int64_t output_dims = 5;
+    const int64_t mf_dims = 40;
     const size_t num_epochs = 20;
-    const double learning_rate = 0.01;
+    const double learning_rate = 0.02;
 
     // model
-    NeuMF model(data.first.getNumOfUser() + 1, data.first.getNumOfItems() + 1, mlp_layers, mf_dims, output_dims);
+    NeuMF model(data.first.getNumOfUser() + 1, data.first.getNumOfItems() + 1, mlp_layers, problem_mode, mf_dims);
 
     // optimizer
     torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(learning_rate));
@@ -36,17 +38,20 @@ int main() {
         for (auto& batch : *train_loader) {
             auto data = torch::transpose(batch.data, 0, 1);
             auto output = model->forward(data[0], data[1]);
-            // auto loss = torch::nn::functional::mse_loss(output, batch.target);
 
-            auto loss = torch::nn::functional::cross_entropy(output, batch.target);
-            // std::cout << output << std::endl;
+            torch::Tensor loss;
+
+            if (problem_mode == ProblemMode::CLASSIFICATION)
+                loss = torch::nn::functional::cross_entropy(output, batch.target);
+            else
+                loss = torch::nn::functional::mse_loss(output, batch.target);
 
             running_loss += loss.item<double>() * batch.data.size(0);
 
-            auto prediction = output.argmax(1);
-            // std::cout << prediction << std::endl;
-            // std::cout << batch.target << std::endl;
-            num_correct += prediction.eq(batch.target.argmax(1)).sum().item<int64_t>();
+            if (problem_mode == ProblemMode::CLASSIFICATION) {
+                auto prediction = output.argmax(1);
+                num_correct += prediction.eq(batch.target.argmax(1)).sum().item<int64_t>();
+            }
 
             optimizer.zero_grad();
             loss.backward();
@@ -65,9 +70,16 @@ int main() {
         auto data = torch::transpose(batch.data, 0, 1);
         auto output = model->forward(data[0], data[1]);
         auto prediction = output.argmax();
+        torch::Tensor loss;
 
-        auto loss =
-            torch::nn::functional::mse_loss(prediction.to(torch::kDouble), batch.target.argmax().to(torch::kDouble));
+        if (problem_mode == ProblemMode::CLASSIFICATION) {
+            loss = torch::nn::functional::mse_loss(prediction.to(torch::kDouble),
+                                                   batch.target.argmax().to(torch::kDouble));
+
+        } else {
+            loss = torch::nn::functional::mse_loss(output, batch.target);
+        }
+
         rmse += loss.item<double>();
     }
     std::cout << rmse << std::endl;

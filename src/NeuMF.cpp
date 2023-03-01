@@ -1,12 +1,15 @@
 #include "NeuMF.h"
 
-NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> mlp_layers, int64_t mf_dims,
-                     int64_t output_dims)
+#include <ATen/ops/where.h>
+
+NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> mlp_layers, ProblemMode problem_mode,
+                     int64_t mf_dims)
     : m_mf_embedding_user(num_users, mf_dims),
       m_mf_embedding_item(num_items, mf_dims),
       m_mlp_embedding_user(num_users, mlp_layers[0] / 2),
       m_mlp_embedding_item(num_items, mlp_layers[0] / 2),
-      m_prediction(mf_dims + mlp_layers.back(), output_dims) {
+      m_prediction(nullptr),
+      m_problem_mode(problem_mode) {
     register_module("mf_embedding_user", m_mf_embedding_user);
     register_module("mf_embedding_item", m_mf_embedding_item);
     register_module("mlp_embedding_user", m_mlp_embedding_user);
@@ -19,6 +22,14 @@ NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> 
 
         m_mlp_layers->push_back(cur_layer);
         m_mlp_layers->push_back(activation_layer);
+    }
+
+    if (problem_mode == ProblemMode::CLASSIFICATION) {
+        torch::nn::Linear prediction(mf_dims + mlp_layers.back(), 5);
+        m_prediction = prediction;
+    } else {
+        torch::nn::Linear prediction(mf_dims + mlp_layers.back(), 1);
+        m_prediction = prediction;
     }
 
     register_module("prediction", m_prediction);
@@ -47,6 +58,8 @@ torch::Tensor NeuMFImpl::forward(torch::Tensor user_input, torch::Tensor item_in
 
     // final prediction
     output = m_prediction->forward(output);
-    output = torch::sigmoid(output);
+    torch::Tensor problem_mode = torch::zeros(1, torch::kBool);
+    problem_mode[0] = (m_problem_mode == ProblemMode::CLASSIFICATION);
+    output = torch::where(problem_mode, torch::sigmoid(output), output);
     return output;
 }
