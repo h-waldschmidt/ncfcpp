@@ -47,6 +47,6 @@ torch::Tensor NeuMFImpl::forward(torch::Tensor user_input, torch::Tensor item_in
 
     // final prediction
     output = m_prediction->forward(output);
-    // output = torch::sigmoid(output);
+    output = torch::sigmoid(output);
     return output;
 }

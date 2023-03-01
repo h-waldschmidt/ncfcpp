@@ -1,3 +1,4 @@
+#include <c10/core/ScalarType.h>
 #include <math.h>
 
 #include <vector>
@@ -7,20 +8,19 @@
 
 int main() {
     // data
-    auto data = readAndSplitMovieLens("../data/ml-1m/ratings.dat", 0.2);
+    auto data = readAndSplitMovieLens("/Users/helmut/Documents/Projects/ncfcpp/data/ml-1m/ratings.dat", 0.2);
     auto train_data = data.first.map(torch::data::transforms::Stack<>());
     auto test_data = data.second.map(torch::data::transforms::Stack<>());
     auto train_loader =
-        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 256);
-    auto test_loader =
-        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(test_data), 256);
+        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 128);
+    auto test_loader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(test_data), 1);
 
     // hyper params
-    const std::vector<int64_t> mlp_layers = {64, 32, 16, 8};
-    const int64_t mf_dims = 10;
-    const int64_t output_dims = 1;
+    const std::vector<int64_t> mlp_layers = {256, 128, 64, 32, 16, 8};
+    const int64_t mf_dims = 30;
+    const int64_t output_dims = 5;
     const size_t num_epochs = 20;
-    const double learning_rate = 0.02;
+    const double learning_rate = 0.01;
 
     // model
     NeuMF model(data.first.getNumOfUser() + 1, data.first.getNumOfItems() + 1, mlp_layers, mf_dims, output_dims);
@@ -36,12 +36,17 @@ int main() {
         for (auto& batch : *train_loader) {
             auto data = torch::transpose(batch.data, 0, 1);
             auto output = model->forward(data[0], data[1]);
-            auto loss = torch::nn::functional::mse_loss(output, batch.target);
+            // auto loss = torch::nn::functional::mse_loss(output, batch.target);
+
+            auto loss = torch::nn::functional::cross_entropy(output, batch.target);
+            // std::cout << output << std::endl;
 
             running_loss += loss.item<double>() * batch.data.size(0);
 
-            auto prediction = output.argmax() + 1;
-            num_correct += prediction.eq(batch.target).sum().item<int64_t>();
+            auto prediction = output.argmax(1);
+            // std::cout << prediction << std::endl;
+            // std::cout << batch.target << std::endl;
+            num_correct += prediction.eq(batch.target.argmax(1)).sum().item<int64_t>();
 
             optimizer.zero_grad();
             loss.backward();
@@ -59,8 +64,11 @@ int main() {
     for (auto& batch : *test_loader) {
         auto data = torch::transpose(batch.data, 0, 1);
         auto output = model->forward(data[0], data[1]);
-        auto loss = torch::nn::functional::mse_loss(output, batch.target);
-        rmse += loss.item<double>() * batch.data.size(0);
+        auto prediction = output.argmax();
+
+        auto loss =
+            torch::nn::functional::mse_loss(prediction.to(torch::kDouble), batch.target.argmax().to(torch::kDouble));
+        rmse += loss.item<double>();
     }
     std::cout << rmse << std::endl;
     rmse /= double(data.second.size().value());
