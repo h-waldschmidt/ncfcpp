@@ -4,20 +4,15 @@
 
 #include <vector>
 
-// defines a rating given by the MovieLens dataset
-struct MovieLensRating {
-    int userID;
-    int itemID;
-    double rating;
-};
+#include "rating.h"
 
 class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
    public:
     // The mode in which the dataset is loaded
     enum Mode { TRAIN, TEST };
 
-    explicit MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items, int64_t ouput_dims = 5,
-                       Mode mode = Mode::TRAIN);
+    explicit MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items,
+                       ProblemMode problem_mode, int64_t ouput_dims = 5, Mode mode = Mode::TRAIN);
 
     // Returns the `Example` at the given `index`.
     torch::data::Example<> get(size_t index) override;
@@ -40,10 +35,14 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
     // Returns number of items
     const int64_t getNumOfItems() const;
 
+    // Returns ProblemMode {Regression, Classification}
+    const ProblemMode getProblemMode() const;
+
    private:
     torch::Tensor m_user_item_pairs;
     torch::Tensor m_ratings;
     Mode m_mode;
+    ProblemMode m_problem_mode;
     int64_t m_num_users;
     int64_t m_num_items;
 };

@@ -5,17 +5,27 @@
 #include <random>
 #include <unordered_set>
 
-MovieLens::MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items, int64_t ouput_dims,
-                     Mode mode)
-    : m_mode(mode), m_num_users(num_users), m_num_items(num_items) {
+MovieLens::MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items, ProblemMode problem_mode,
+                     int64_t ouput_dims, Mode mode)
+    : m_mode(mode), m_problem_mode(problem_mode), m_num_users(num_users), m_num_items(num_items) {
     m_user_item_pairs = torch::empty({long(data.size()), 2}, torch::kInt32);
-    m_ratings = torch::empty({long(data.size()), 5}, torch::kDouble);
+
+    if (problem_mode == ProblemMode::CLASSIFICATION)
+        m_ratings = torch::empty({long(data.size()), 5}, torch::kDouble);
+    else
+        m_ratings = torch::empty({long(data.size()), 1}, torch::kDouble);
 
     for (int i = 0; i < data.size(); i++) {
         m_user_item_pairs[i] = torch::tensor({data[i].userID, data[i].itemID}, torch::kInt32);
         m_ratings[i] = float(data[i].rating);
-        m_ratings[i] = torch::zeros(5);
-        m_ratings[i][data[i].rating - 1] = 1;
+
+        if (problem_mode == ProblemMode::CLASSIFICATION) {
+            m_ratings[i] = torch::zeros(5);
+            m_ratings[i][data[i].rating - 1] = 1.0;
+        } else {
+            m_ratings[i] = torch::zeros(1);
+            m_ratings[i][0] = data[i].rating;
+        }
     }
 }
 
@@ -32,6 +42,8 @@ const torch::Tensor& MovieLens::getRatings() const { return m_ratings; }
 const int64_t MovieLens::getNumOfUser() const { return m_num_users; }
 
 const int64_t MovieLens::getNumOfItems() const { return m_num_items; }
+
+const ProblemMode MovieLens::getProblemMode() const { return m_problem_mode; }
 
 // split the ratings after each user
 // this results in training and test data containing data for each user
@@ -71,7 +83,7 @@ void splitRatings(std::vector<MovieLensRating>& train_ratings, std::vector<Movie
 }
 
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_path, double test_size,
-                                                      int64_t ouput_dims) {
+                                                      int64_t ouput_dims, ProblemMode problem_mode) {
     // read the data into a vector of MovieLensRatings
     std::vector<MovieLensRating> ratings;
     std::ifstream infile(data_path);
@@ -104,7 +116,7 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
     splitRatings(ratings, test_ratings, test_size, max_user);
 
     // create Torch Datasets and return them
-    MovieLens train_data(ratings, max_user, max_item, ouput_dims);
-    MovieLens test_data(test_ratings, max_user, max_item, ouput_dims, MovieLens::Mode::TEST);
+    MovieLens train_data(ratings, max_user, max_item, problem_mode, ouput_dims);
+    MovieLens test_data(test_ratings, max_user, max_item, problem_mode, ouput_dims, MovieLens::Mode::TEST);
     return std::make_pair(train_data, test_data);
 }
