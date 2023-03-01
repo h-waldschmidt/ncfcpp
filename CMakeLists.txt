@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(ncfcpp LANGUAGES C CXX)
 
