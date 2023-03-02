@@ -82,8 +82,8 @@ void splitRatings(std::vector<MovieLensRating>& train_ratings, std::vector<Movie
     }
 }
 
-std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_path, double test_size,
-                                                      ProblemMode problem_mode) {
+std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_path, double test_size,
+                                                        ProblemMode problem_mode) {
     // read the data into a vector of MovieLensRatings
     std::vector<MovieLensRating> ratings;
     std::ifstream infile(data_path);
@@ -100,6 +100,46 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_pa
         getline(ss, itemId_string, ':');
         getline(ss, rating_string, ':');
         getline(ss, rating_string, ':');
+
+        MovieLensRating current_rating = {stoi(userId_string), stoi(itemId_string), atof(rating_string.c_str())};
+        ratings.push_back(current_rating);
+        if (current_rating.userID > max_user) {
+            max_user = current_rating.userID;
+        }
+        if (current_rating.itemID > max_item) {
+            max_item = current_rating.itemID;
+        }
+    }
+
+    // split into two vectors according to test_size
+    std::vector<MovieLensRating> test_ratings;
+    splitRatings(ratings, test_ratings, test_size, max_user + 1);
+
+    // create Torch Datasets and return them
+    MovieLens train_data(ratings, max_user + 1, max_item + 1, problem_mode);
+    MovieLens test_data(test_ratings, max_user + 1, max_item + 1, problem_mode, MovieLens::Mode::TEST);
+    return std::make_pair(train_data, test_data);
+}
+
+std::pair<MovieLens, MovieLens> readAndSplitMovieLens20M(const std::string& data_path, double test_size,
+                                                         ProblemMode problem_mode) {
+    // read the data into a vector of MovieLensRatings
+    std::vector<MovieLensRating> ratings;
+    std::ifstream infile(data_path);
+    std::string userId_string, itemId_string, rating_string;
+    std::string line;
+    int max_user = -1;
+    int max_item = -1;
+
+    getline(infile, line);  // ignore first line
+
+    while (getline(infile, line)) {
+        std::stringstream ss(line);
+
+        // file comes in format userID,itemID,rating,timestamp
+        getline(ss, userId_string, ',');
+        getline(ss, itemId_string, ',');
+        getline(ss, rating_string, ',');
 
         MovieLensRating current_rating = {stoi(userId_string), stoi(itemId_string), atof(rating_string.c_str())};
         ratings.push_back(current_rating);

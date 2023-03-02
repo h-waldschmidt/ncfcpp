@@ -48,12 +48,23 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
 };
 
 /**
- * @brief
+ * @brief reads, splits and creats two MovieLens Datasets for MovieLens 1M dataset
  *
  * @param data_path path to MovieLens file
  * @param test_size size of train/test split (e.g. 0.2 corresponds to 80% train
  * and 20% test data)
  * @return train and test data sets
  **/
-std::pair<MovieLens, MovieLens> readAndSplitMovieLens(const std::string& data_path, double test_size,
-                                                      ProblemMode problem_mode);
+std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_path, double test_size,
+                                                        ProblemMode problem_mode);
+
+/**
+ * @brief reads, splits and creats two MovieLens Datasets for MovieLens 20M dataset
+ *
+ * @param data_path path to MovieLens file
+ * @param test_size size of train/test split (e.g. 0.2 corresponds to 80% train
+ * and 20% test data)
+ * @return train and test data sets
+ **/
+std::pair<MovieLens, MovieLens> readAndSplitMovieLens20M(const std::string& data_path, double test_size,
+                                                         ProblemMode problem_mode);
