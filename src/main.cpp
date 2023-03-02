@@ -10,8 +10,7 @@ int main() {
     ProblemMode problem_mode = ProblemMode::REGRESSION;
 
     // data
-    auto data =
-        readAndSplitMovieLens("/Users/helmut/Documents/Projects/ncfcpp/data/ml-1m/ratings.dat", 0.2, problem_mode);
+    auto data = readAndSplitMovieLens1M("path", 0.2, problem_mode);
     auto train_data = data.first.map(torch::data::transforms::Stack<>());
     auto test_data = data.second.map(torch::data::transforms::Stack<>());
     auto train_loader =
@@ -20,9 +19,9 @@ int main() {
 
     // hyper params
     const std::vector<int64_t> mlp_layers = {256, 128, 64, 32, 16, 8};
-    const int64_t mf_dims = 40;
+    const int64_t mf_dims = 30;
     const size_t num_epochs = 20;
-    const double learning_rate = 0.02;
+    const double learning_rate = 0.01;
 
     // model
     NeuMF model(data.first.getNumOfUser() + 1, data.first.getNumOfItems() + 1, mlp_layers, problem_mode, mf_dims);
