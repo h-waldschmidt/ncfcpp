@@ -6,6 +6,10 @@
 #include "dataset.h"
 
 int main() {
+    auto cuda_available = torch::cuda::is_available();
+    torch::Device device(cuda_available ? torch::kCUDA : torch::kCPU);
+    std::cout << (cuda_available ? "CUDA available. Training on GPU." : "Training on CPU.") << '\n';
+
     ProblemMode problem_mode = ProblemMode::REGRESSION;
 
     // data
@@ -25,6 +29,7 @@ int main() {
 
     // model
     NeuMF model(data.first.getNumOfUser() + 1, data.first.getNumOfItems() + 1, mlp_layers, problem_mode, mf_dims);
+    model->to(device);
 
     // optimizer
     torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(learning_rate));
