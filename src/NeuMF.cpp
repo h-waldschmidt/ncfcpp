@@ -1,7 +1,5 @@
 #include "NeuMF.h"
 
-#include <ATen/ops/where.h>
-
 NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> mlp_layers, ProblemMode problem_mode,
                      int64_t mf_dims)
     : m_mf_embedding_user(num_users, mf_dims),

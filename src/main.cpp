@@ -1,4 +1,3 @@
-#include <c10/core/ScalarType.h>
 #include <math.h>
 
 #include <vector>
@@ -10,11 +9,12 @@ int main() {
     ProblemMode problem_mode = ProblemMode::REGRESSION;
 
     // data
-    auto data = readAndSplitMovieLens1M("path", 0.2, problem_mode);
+    auto data =
+        readAndSplitMovieLens1M("/home/helmut/Documents/Projects/ncfcpp/data/ml-1m/ratings.dat", 0.2, problem_mode);
     auto train_data = data.first.map(torch::data::transforms::Stack<>());
     auto test_data = data.second.map(torch::data::transforms::Stack<>());
     auto train_loader =
-        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 128);
+        torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(train_data), 256);
     auto test_loader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(std::move(test_data), 1);
 
     // hyper params
@@ -28,6 +28,9 @@ int main() {
 
     // optimizer
     torch::optim::SGD optimizer(model->parameters(), torch::optim::SGDOptions(learning_rate));
+
+    // training start time
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // training
     for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
@@ -63,6 +66,11 @@ int main() {
         std::cout << "Epoch [" << (epoch + 1) << "/" << num_epochs << "], Trainset - Loss: " << sample_mean_loss
                   << ", Accuracy: " << accuracy << '\n';
     }
+
+    // training end time
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Training took: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"
+              << std::endl;
 
     double rmse = 0.0;
     for (auto& batch : *test_loader) {
