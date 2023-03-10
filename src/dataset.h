@@ -2,6 +2,7 @@
 
 #include <torch/torch.h>
 
+#include <memory>
 #include <vector>
 
 #include "rating.h"
@@ -12,7 +13,7 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
     enum Mode { TRAIN, TEST };
 
     explicit MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items,
-                       ProblemMode problem_mode, Mode mode = Mode::TRAIN);
+                       ProblemMode problem_mode, std::shared_ptr<torch::Device> device, Mode mode = Mode::TRAIN);
 
     // Returns the `Example` at the given `index`.
     torch::data::Example<> get(size_t index) override;
@@ -39,6 +40,7 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
     const ProblemMode getProblemMode() const;
 
    private:
+    std::shared_ptr<torch::Device> m_device;
     torch::Tensor m_user_item_pairs;
     torch::Tensor m_ratings;
     Mode m_mode;
@@ -56,7 +58,8 @@ class MovieLens : public torch::data::datasets::Dataset<MovieLens> {
  * @return train and test data sets
  **/
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_path, double test_size,
-                                                        ProblemMode problem_mode);
+                                                        ProblemMode problem_mode,
+                                                        std::shared_ptr<torch::Device> device);
 
 /**
  * @brief reads, splits and creats two MovieLens Datasets for MovieLens 20M dataset
@@ -67,4 +70,5 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_
  * @return train and test data sets
  **/
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens20M(const std::string& data_path, double test_size,
-                                                         ProblemMode problem_mode);
+                                                         ProblemMode problem_mode,
+                                                         std::shared_ptr<torch::Device> device);

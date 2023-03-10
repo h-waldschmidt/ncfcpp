@@ -6,27 +6,33 @@
 #include <unordered_set>
 
 MovieLens::MovieLens(std::vector<MovieLensRating>& data, int64_t num_users, int64_t num_items, ProblemMode problem_mode,
-                     Mode mode)
-    : m_mode(mode), m_problem_mode(problem_mode), m_num_users(num_users), m_num_items(num_items) {
-    m_user_item_pairs = torch::empty({long(data.size()), 2}, torch::kInt32);
-
+                     std::shared_ptr<torch::Device> device, Mode mode)
+    : m_mode(mode),
+      m_problem_mode(problem_mode),
+      m_num_users(num_users),
+      m_num_items(num_items),
+      m_device(move(device)) {
+    torch::Tensor user_item_pairs = torch::empty({long(data.size()), 2}, torch::kInt32);
+    torch::Tensor ratings;
     if (problem_mode == ProblemMode::CLASSIFICATION)
-        m_ratings = torch::empty({long(data.size()), 5}, torch::kFloat);
+        ratings = torch::empty({long(data.size()), 5}, torch::kFloat);
     else
-        m_ratings = torch::empty({long(data.size()), 1}, torch::kFloat);
+        ratings = torch::empty({long(data.size()), 1}, torch::kFloat);
 
     for (int i = 0; i < data.size(); i++) {
-        m_user_item_pairs[i] = torch::tensor({data[i].userID, data[i].itemID}, torch::kInt32);
-        m_ratings[i] = float(data[i].rating);
+        user_item_pairs[i] = torch::tensor({data[i].userID, data[i].itemID}, torch::kInt32);
+        ratings[i] = float(data[i].rating);
 
         if (problem_mode == ProblemMode::CLASSIFICATION) {
-            m_ratings[i] = torch::zeros(5);
-            m_ratings[i][data[i].rating - 1] = 1.0;
+            ratings[i] = torch::zeros(5);
+            ratings[i][data[i].rating - 1] = 1.0;
         } else {
-            m_ratings[i] = torch::zeros(1);
-            m_ratings[i][0] = data[i].rating;
+            ratings[i] = torch::zeros(1);
+            ratings[i][0] = data[i].rating;
         }
     }
+    m_user_item_pairs = user_item_pairs.to(*m_device);
+    m_ratings = ratings.to(*m_device);
 }
 
 torch::data::Example<> MovieLens::get(size_t index) { return {m_user_item_pairs[index], m_ratings[index]}; }
@@ -83,7 +89,8 @@ void splitRatings(std::vector<MovieLensRating>& train_ratings, std::vector<Movie
 }
 
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_path, double test_size,
-                                                        ProblemMode problem_mode) {
+                                                        ProblemMode problem_mode,
+                                                        std::shared_ptr<torch::Device> device) {
     // read the data into a vector of MovieLensRatings
     std::vector<MovieLensRating> ratings;
     std::ifstream infile(data_path);
@@ -116,13 +123,14 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens1M(const std::string& data_
     splitRatings(ratings, test_ratings, test_size, max_user + 1);
 
     // create Torch Datasets and return them
-    MovieLens train_data(ratings, max_user + 1, max_item + 1, problem_mode);
-    MovieLens test_data(test_ratings, max_user + 1, max_item + 1, problem_mode, MovieLens::Mode::TEST);
+    MovieLens train_data(ratings, max_user + 1, max_item + 1, problem_mode, device);
+    MovieLens test_data(test_ratings, max_user + 1, max_item + 1, problem_mode, device, MovieLens::Mode::TEST);
     return std::make_pair(train_data, test_data);
 }
 
 std::pair<MovieLens, MovieLens> readAndSplitMovieLens20M(const std::string& data_path, double test_size,
-                                                         ProblemMode problem_mode) {
+                                                         ProblemMode problem_mode,
+                                                         std::shared_ptr<torch::Device> device) {
     // read the data into a vector of MovieLensRatings
     std::vector<MovieLensRating> ratings;
     std::ifstream infile(data_path);
@@ -156,7 +164,7 @@ std::pair<MovieLens, MovieLens> readAndSplitMovieLens20M(const std::string& data
     splitRatings(ratings, test_ratings, test_size, max_user + 1);
 
     // create Torch Datasets and return them
-    MovieLens train_data(ratings, max_user + 1, max_item + 1, problem_mode);
-    MovieLens test_data(test_ratings, max_user + 1, max_item + 1, problem_mode, MovieLens::Mode::TEST);
+    MovieLens train_data(ratings, max_user + 1, max_item + 1, problem_mode, device);
+    MovieLens test_data(test_ratings, max_user + 1, max_item + 1, problem_mode, device, MovieLens::Mode::TEST);
     return std::make_pair(train_data, test_data);
 }

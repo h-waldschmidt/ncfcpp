@@ -1,8 +1,9 @@
 #include "NeuMF.h"
 
 NeuMFImpl::NeuMFImpl(int64_t num_users, int64_t num_items, std::vector<int64_t> mlp_layers, ProblemMode problem_mode,
-                     int64_t mf_dims)
-    : m_mf_embedding_user(num_users, mf_dims),
+                     std::shared_ptr<torch::Device> ptr_device, int64_t mf_dims)
+    : m_device(move(ptr_device)),
+      m_mf_embedding_user(num_users, mf_dims),
       m_mf_embedding_item(num_items, mf_dims),
       m_mlp_embedding_user(num_users, mlp_layers[0] / 2),
       m_mlp_embedding_item(num_items, mlp_layers[0] / 2),
@@ -56,7 +57,8 @@ torch::Tensor NeuMFImpl::forward(torch::Tensor user_input, torch::Tensor item_in
 
     // final prediction
     output = m_prediction->forward(output);
-    torch::Tensor problem_mode = torch::zeros(1, torch::kBool);
+    auto options = torch::TensorOptions().dtype(torch::kBool).device(*m_device);
+    torch::Tensor problem_mode = torch::zeros(1, options);
     problem_mode[0] = (m_problem_mode == ProblemMode::CLASSIFICATION);
     output = torch::where(problem_mode, torch::sigmoid(output), output);
     return output;
